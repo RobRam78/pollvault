@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Pollvault logo">
+  <!-- arc over the box -->
+  <path d="M8 40 A24 24 0 0 1 56 40" fill="none" stroke="#F5B700" stroke-width="7" stroke-linecap="round"/>
+  <!-- the vault box -->
+  <rect x="18" y="30" width="28" height="26" rx="4" fill="#14213D"/>
+  <!-- ballot slot -->
+  <rect x="26" y="40" width="12" height="4" rx="1.5" fill="#F5B700"/>
+</svg>
