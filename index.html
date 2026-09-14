@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pollvault — post a poll, let the crowd decide</title>
 <meta name="description" content="Pollvault: post polls with up to four questions, tag them, and let anyone vote. The most-voted polls rise to the top.">
+<meta property="og:site_name" content="Pollvault">
+<meta property="og:title" content="Pollvault">
+<meta property="og:description" content="Post a poll, let the crowd decide. The most-voted polls rise to the top.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://robram78.github.io/pollvault/">
+<meta property="og:image" content="https://robram78.github.io/pollvault/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pollvault">
+<meta name="twitter:description" content="Post a poll, let the crowd decide. The most-voted polls rise to the top.">
+<meta name="twitter:image" content="https://robram78.github.io/pollvault/og.png">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -27,8 +40,9 @@
   header { border-bottom: 3px solid var(--ink); background: var(--sheet); }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
   header .wrap { display: flex; align-items: baseline; justify-content: space-between; padding-top: 22px; padding-bottom: 18px; gap: 16px; flex-wrap: wrap; }
-  .brand { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-  .brand span { display: inline-block; width: 12px; height: 12px; background: var(--marigold); border-radius: 2px; margin-left: 4px; vertical-align: baseline; }
+  .brand { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 38px; height: 38px; }
+  .brand a { color: inherit; text-decoration: none; }
   header p { margin: 0; color: var(--ink-soft); font-size: 15px; }
 
   /* two-column layout on wide screens: feed + sidebar ads */
@@ -47,6 +61,17 @@
   .ad-tower { height: 600px; }                              /* 300×600 half page */
   .ad-inline { height: 120px; margin-bottom: 18px; }        /* native slot between polls */
   @media (max-width: 900px) { .ad-tower { display: none; } .ad-banner { height: 50px; } }
+
+  .ad-live { background: none; border: 0; padding: 0; overflow: hidden; }
+  .ad-live img { display: block; max-width: 100%; height: auto; border-radius: var(--radius); }
+
+  .share { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .share span { font-size: 13px; color: var(--ink-soft); margin-right: 4px; }
+  .share button, .share a { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 4px 10px; border-radius: 999px; font-size: 13px; text-decoration: none; }
+  .share button:hover, .share a:hover { background: #E3E7EE; }
+  .share svg { width: 14px; height: 14px; fill: currentColor; }
+
+  .focus { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #FFF6D6; border: 1px solid #F0D98A; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
   .toolbar h2 { margin: 0; font-size: 20px; font-weight: 500; }
@@ -116,7 +141,7 @@
 <body>
 <header>
   <div class="wrap">
-    <h1 class="brand">Pollvault<span></span></h1>
+    <h1 class="brand"><img src="logo.svg" alt=""><a href="./">Pollvault</a></h1>
     <p>Post a poll. The crowd votes. The most-voted rise to the top.</p>
   </div>
 </header>
@@ -125,7 +150,14 @@
   <div class="wrap layout">
     <div>
       <!-- AD: top leaderboard -->
-      <div class="ad ad-banner" data-slot="top-leaderboard"><div>Ad space<small>728×90 / 320×50</small></div></div>
+      <a class="ad ad-banner ad-live" data-slot="top-leaderboard" href="https://polytricity.itch.io/the-c64-dev-machine" target="_blank" rel="noopener sponsored">
+        <picture>
+          <source media="(max-width: 760px)" srcset="ads/cdm-320x50.svg">
+          <img src="ads/cdm-728x90.svg" alt="C64 Dev Machine – build Commodore 64 games by wiring nodes. Get it on itch.io" width="728" height="90">
+        </picture>
+      </a>
+
+      <div class="focus hidden" id="focusBar"><span>Viewing one shared poll.</span><button class="btn ghost small" id="showAll">Show all polls</button></div>
 
       <div class="toolbar">
         <h2 id="listTitle">Top polls</h2>
@@ -202,6 +234,7 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
   var db = null;
   var query = '';
   var sortMode = 'votes';
+  var focusId = new URLSearchParams(location.search).get('poll');
 
   // ---------- storage ----------
   function connect() {
@@ -236,8 +269,11 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
     });
   }
   async function savePoll(poll) {
-    try { await db.ref('polls').push().set(poll); return true; }
-    catch (e) { return false; }
+    try {
+      var ref = db.ref('polls').push();
+      await ref.set(poll);
+      return ref.key;
+    } catch (e) { return null; }
   }
   // First come, first served: the transaction only appends if there is still room.
   async function addOption(pollId, qi, text) {
@@ -302,9 +338,58 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
     }
     return true;
   }
+  function pollUrl(id) {
+    return location.origin + location.pathname + '?poll=' + encodeURIComponent(id);
+  }
+  function openShare(url) {
+    window.open(url, '_blank', 'noopener,width=600,height=520');
+  }
+  function shareRow(poll) {
+    var row = document.createElement('div'); row.className = 'share';
+    var lbl = document.createElement('span'); lbl.textContent = 'Share'; row.appendChild(lbl);
+    var url = pollUrl(poll.id);
+    var text = poll.title + ' — vote on Pollvault';
+
+    var copy = document.createElement('button');
+    copy.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>Copy link';
+    copy.onclick = function () {
+      var done = function () { copy.textContent = 'Link copied'; setTimeout(function () { copy.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>Copy link'; }, 1800); };
+      if (navigator.clipboard) { navigator.clipboard.writeText(url).then(done); }
+      else { window.prompt('Copy this link', url); }
+    };
+    row.appendChild(copy);
+
+    if (navigator.share) {
+      var nat = document.createElement('button');
+      nat.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 16.1a3 3 0 0 0-2 .8l-7.1-4.1a3 3 0 0 0 0-1.6L16 7.1a3 3 0 1 0-1-2.2l.1.7-7.2 4.2a3 3 0 1 0 0 4.4l7.2 4.2-.1.7a3 3 0 1 0 3-2.9z"/></svg>Share…';
+      nat.onclick = function () { navigator.share({ title: poll.title, text: text, url: url }).catch(function () {}); };
+      row.appendChild(nat);
+    }
+
+    var links = [
+      ['X', 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url),
+        '<svg viewBox="0 0 24 24"><path d="M18.2 2h3.4l-7.4 8.5L23 22h-6.8l-5.3-7-6.1 7H1.4l7.9-9.1L1 2h7l4.8 6.4L18.2 2zm-1.2 18h1.9L7.1 3.9H5.1L17 20z"/></svg>'],
+      ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url),
+        '<svg viewBox="0 0 24 24"><path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H6v4h3v7h4v-7h3l1-4h-4V9c0-.6.4-1 1-1z"/></svg>'],
+      ['WhatsApp', 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url),
+        '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.1.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.2c0-.2-.2-.3-.4-.4z"/></svg>'],
+      ['Reddit', 'https://www.reddit.com/submit?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(poll.title),
+        '<svg viewBox="0 0 24 24"><path d="M22 12.1a2.2 2.2 0 0 0-3.7-1.6 10.8 10.8 0 0 0-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 1 0 .2-.8l-3.6-.8a.4.4 0 0 0-.5.3L11.7 8.7a10.8 10.8 0 0 0-5.9 1.8 2.2 2.2 0 1 0-2.4 3.6 4.3 4.3 0 0 0 0 .7c0 3.4 3.9 6.1 8.7 6.1s8.7-2.7 8.7-6.1a4.3 4.3 0 0 0 0-.7 2.2 2.2 0 0 0 1.2-2zM7 13.6a1.6 1.6 0 1 1 1.6 1.6A1.6 1.6 0 0 1 7 13.6zm8.9 4.3a5.9 5.9 0 0 1-3.8 1.2 5.9 5.9 0 0 1-3.8-1.2.4.4 0 0 1 .6-.6 5 5 0 0 0 3.2 1 5 5 0 0 0 3.2-1 .4.4 0 0 1 .6.6zm-.3-2.7a1.6 1.6 0 1 1 1.6-1.6 1.6 1.6 0 0 1-1.6 1.6z"/></svg>']
+    ];
+    links.forEach(function (l) {
+      var a = document.createElement('a'); a.href = l[1]; a.innerHTML = l[2] + l[0];
+      a.onclick = function (e) { e.preventDefault(); openShare(l[1]); };
+      row.appendChild(a);
+    });
+    return row;
+  }
+
   function visiblePolls() {
     var terms = query.toLowerCase().split(/\s+/).filter(function (t) { return t !== ''; });
-    var list = polls.filter(function (p) { return matches(p, terms); });
+    var list = polls.filter(function (p) {
+      if (focusId !== null) { return p.id === focusId; }
+      return matches(p, terms);
+    });
     list.sort(function (a, b) {
       if (sortMode === 'newest') { return b.createdAt - a.createdAt; }
       if (b.totalVotes !== a.totalVotes) { return b.totalVotes - a.totalVotes; }
@@ -407,9 +492,13 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
       questions: questions
     };
     note.className = 'note'; note.textContent = 'Publishing…';
-    var ok = await savePoll(poll);
-    if (!ok) { note.className = 'note err'; note.textContent = 'Could not save the poll. Check the Firebase config and database rules.'; return; }
+    var newId = await savePoll(poll);
+    if (newId === null) { note.className = 'note err'; note.textContent = 'Could not save the poll. Check the Firebase config and database rules.'; return; }
     closeComposer();
+    focusId = newId;
+    history.replaceState(null, '', pollUrl(newId));
+    renderPolls();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ---------- feed ----------
@@ -430,9 +519,26 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
     host.innerHTML = '';
     var list = visiblePolls();
     var title = document.getElementById('listTitle');
-    if (query !== '') { title.textContent = list.length + (list.length === 1 ? ' result' : ' results'); }
-    else if (polls.length === 0) { title.textContent = 'No polls yet'; }
-    else { title.textContent = sortMode === 'votes' ? 'Top polls' : 'Newest polls'; }
+    var fb = document.getElementById('focusBar');
+    if (focusId !== null) {
+      fb.classList.remove('hidden');
+      title.textContent = list.length === 0 ? 'Poll not found' : 'Shared poll';
+      document.title = list.length === 0 ? 'Pollvault' : list[0].title + ' — Pollvault';
+    } else {
+      fb.classList.add('hidden');
+      document.title = 'Pollvault — post a poll, let the crowd decide';
+    }
+    if (focusId !== null && list.length === 0) {
+      var nf = document.createElement('div'); nf.className = 'empty';
+      nf.textContent = 'That poll does not exist or was removed.';
+      host.appendChild(nf);
+      return;
+    }
+    if (focusId === null) {
+      if (query !== '') { title.textContent = list.length + (list.length === 1 ? ' result' : ' results'); }
+      else if (polls.length === 0) { title.textContent = 'No polls yet'; }
+      else { title.textContent = sortMode === 'votes' ? 'Top polls' : 'Newest polls'; }
+    }
 
     if (list.length === 0) {
       var e = document.createElement('div'); e.className = 'empty';
@@ -464,6 +570,7 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
       poll.tags.forEach(function (t) {
         var b = document.createElement('button'); b.className = 'tag'; b.textContent = t;
         b.onclick = function () {
+          focusId = null; history.replaceState(null, '', location.pathname);
           document.getElementById('search').value = t; query = t; renderPolls();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -534,6 +641,7 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
     }
     actions.appendChild(note);
     sheet.appendChild(actions);
+    sheet.appendChild(shareRow(poll));
     return sheet;
   }
 
@@ -567,6 +675,11 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
   document.getElementById('publishBtn').onclick = publish;
   document.getElementById('addQ').onclick = function () {
     if (draft.questions.length < MAX_Q) { draft.questions.push(newQ()); renderComposer(); }
+  };
+  document.getElementById('showAll').onclick = function () {
+    focusId = null;
+    history.replaceState(null, '', location.pathname);
+    renderPolls();
   };
   document.getElementById('search').oninput = function (e) { query = e.target.value.trim(); renderPolls(); };
   document.getElementById('sort').onchange = function (e) { sortMode = e.target.value; renderPolls(); };
