@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pollvault — post a poll, let the crowd decide</title>
+<meta name="description" content="Pollvault: post polls with up to four questions, tag them, and let anyone vote. The most-voted polls rise to the top.">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEF1F5;
+    --sheet: #FFFFFF;
+    --ink: #14213D;
+    --ink-soft: #5B6478;
+    --line: #CFD5DF;
+    --marigold: #F5B700;
+    --lake: #2E6F95;
+    --danger: #B23A3A;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Outfit', 'Segoe UI', sans-serif; line-height: 1.5; }
+  a { color: var(--lake); }
+  button { font: inherit; cursor: pointer; }
+  input, textarea { font: inherit; }
+
+  header { border-bottom: 3px solid var(--ink); background: var(--sheet); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header .wrap { display: flex; align-items: baseline; justify-content: space-between; padding-top: 22px; padding-bottom: 18px; gap: 16px; flex-wrap: wrap; }
+  .brand { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand span { display: inline-block; width: 12px; height: 12px; background: var(--marigold); border-radius: 2px; margin-left: 4px; vertical-align: baseline; }
+  header p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  /* two-column layout on wide screens: feed + sidebar ads */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; padding-top: 24px; padding-bottom: 60px; }
+  aside { position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 18px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside { position: static; } }
+
+  /* ===== AD SLOTS =====
+     Each .ad is a placeholder. Replace the inner content with your ad network
+     tag (AdSense, Ezoic, Carbon, a sponsor image…) but keep the .ad wrapper
+     and the data-slot name so you can track which placement earns. */
+  .ad { display: flex; align-items: center; justify-content: center; text-align: center; background: repeating-linear-gradient(45deg, #E4E8EF 0 10px, #EBEEF3 10px 20px); border: 1px dashed #B9C1CE; border-radius: var(--radius); color: var(--ink-soft); font-size: 13px; }
+  .ad small { display: block; font-size: 11px; opacity: .7; }
+  .ad-banner { height: 90px; margin-bottom: 20px; }        /* 728×90 leaderboard / 320×50 mobile */
+  .ad-rect { height: 250px; }                               /* 300×250 medium rectangle */
+  .ad-tower { height: 600px; }                              /* 300×600 half page */
+  .ad-inline { height: 120px; margin-bottom: 18px; }        /* native slot between polls */
+  @media (max-width: 900px) { .ad-tower { display: none; } .ad-banner { height: 50px; } }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+  .toolbar h2 { margin: 0; font-size: 20px; font-weight: 500; }
+
+  .searchrow { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .searchrow input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; color: var(--ink); }
+  .searchrow select { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; color: var(--ink); font: inherit; }
+
+  .btn { border: 2px solid var(--ink); background: var(--ink); color: #fff; padding: 9px 16px; border-radius: var(--radius); font-weight: 500; }
+  .btn:hover { background: #1f2f57; border-color: #1f2f57; }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.ghost:hover { background: #E3E7EE; }
+  .btn.small { padding: 5px 10px; font-size: 14px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--marigold); outline-offset: 2px; }
+
+  .sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 18px; }
+  .sheet h3 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .meta { color: var(--ink-soft); font-size: 14px; margin-bottom: 12px; }
+  .votes { display: inline-block; background: var(--marigold); color: var(--ink); font-weight: 700; padding: 1px 8px; border-radius: 999px; font-size: 13px; margin-left: 6px; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tag { background: #E6F0F5; color: var(--lake); border: 0; padding: 2px 10px; border-radius: 999px; font-size: 13px; }
+  .tag:hover { background: #D3E4EE; }
+
+  .question { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .question:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .question h4 { margin: 0 0 10px; font-size: 16px; font-weight: 500; }
+
+  .option { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .option label { flex: 1; cursor: pointer; }
+  .option input[type=radio] { width: 18px; height: 18px; accent-color: var(--ink); }
+
+  .result { position: relative; margin: 6px 0; padding: 8px 12px; border-radius: 4px; background: #F3F5F8; overflow: hidden; }
+  .result .bar { position: absolute; inset: 0; width: 0; background: var(--marigold); opacity: .55; transition: width .5s ease; }
+  .result.top .bar { opacity: .95; }
+  .result span { position: relative; display: flex; justify-content: space-between; gap: 12px; }
+  .result span b { font-weight: 500; white-space: nowrap; }
+
+  .actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .note { font-size: 14px; color: var(--ink-soft); }
+  .note.ok { color: #1F6B3A; }
+  .note.err { color: var(--danger); }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 14px; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); }
+  .qblock { border-left: 4px solid var(--lake); padding: 10px 0 10px 16px; margin: 16px 0; }
+  .qblock .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .qblock .head strong { font-weight: 500; }
+  .qblock .qtext { width: 100%; margin-bottom: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 4px; }
+  .optrow { display: flex; gap: 8px; margin-bottom: 8px; }
+  .optrow input { flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; }
+  .link { background: none; border: 0; color: var(--lake); padding: 4px 0; text-decoration: underline; }
+  .link.danger { color: var(--danger); }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--ink-soft); border: 1px dashed var(--line); border-radius: var(--radius); }
+  .hidden { display: none; }
+  footer { border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 13px; padding: 18px 0; }
+
+  @media (prefers-reduced-motion: reduce) { .result .bar { transition: none; } }
+  @media (max-width: 520px) { .sheet { padding: 18px 16px; } .brand { font-size: 26px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1 class="brand">Pollvault<span></span></h1>
+    <p>Post a poll. The crowd votes. The most-voted rise to the top.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap layout">
+    <div>
+      <!-- AD: top leaderboard -->
+      <div class="ad ad-banner" data-slot="top-leaderboard"><div>Ad space<small>728×90 / 320×50</small></div></div>
+
+      <div class="toolbar">
+        <h2 id="listTitle">Top polls</h2>
+        <button class="btn" id="newBtn">New poll</button>
+      </div>
+
+      <div class="searchrow">
+        <input id="search" type="search" placeholder="Search questions, options or tags" aria-label="Search polls">
+        <select id="sort" aria-label="Sort polls">
+          <option value="votes">Most votes</option>
+          <option value="newest">Newest</option>
+        </select>
+      </div>
+
+      <section class="sheet hidden" id="composer">
+        <h3>New poll</h3>
+        <p class="meta">Up to four questions, two to six options each. Everyone can see and vote on it.</p>
+        <div class="field">
+          <label for="pollTitle">Poll title</label>
+          <input id="pollTitle" maxlength="120" placeholder="What should we decide?">
+        </div>
+        <div class="field">
+          <label for="pollAuthor">Your name (optional)</label>
+          <input id="pollAuthor" maxlength="40" placeholder="Anonymous">
+        </div>
+        <div class="field">
+          <label for="pollTags">Tags (comma separated, up to 6)</label>
+          <input id="pollTags" maxlength="120" placeholder="retro, c64, games">
+        </div>
+        <div id="qlist"></div>
+        <div class="actions">
+          <button class="btn ghost small" id="addQ">Add question</button>
+        </div>
+        <div class="actions" style="margin-top:22px">
+          <button class="btn" id="publishBtn">Publish poll</button>
+          <button class="btn ghost" id="cancelBtn">Cancel</button>
+          <span class="note" id="composerNote"></span>
+        </div>
+      </section>
+
+      <div id="polls"></div>
+    </div>
+
+    <aside>
+      <!-- AD: sidebar rectangle -->
+      <div class="ad ad-rect" data-slot="sidebar-rect"><div>Ad space<small>300×250</small></div></div>
+      <!-- AD: sidebar half page -->
+      <div class="ad ad-tower" data-slot="sidebar-tower"><div>Ad space<small>300×600</small></div></div>
+    </aside>
+  </div>
+</main>
+
+<footer><div class="wrap">Pollvault · Votes are anonymous · One vote per poll per browser</div></footer>
+
+<!-- ===== Firebase config: paste your project's values here ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBp1SUCIFqOjICnaGNLAmBqYJNmjwRKZNM",
+  authDomain: "pollvault-6ba36.firebaseapp.com",
+  databaseURL: "https://pollvault-6ba36-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "pollvault-6ba36"
+};
+var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
+</script>
+
+<script>
+(function () {
+  var MAX_Q = 4, MAX_OPT = 6, MIN_OPT = 2, MAX_TAGS = 6;
+  var polls = [];
+  var voted = {};
+  var draft = null;
+  var db = null;
+  var query = '';
+  var sortMode = 'votes';
+
+  // ---------- storage ----------
+  function connect() {
+    if (FIREBASE_CONFIG.apiKey === "PASTE_API_KEY") { return false; }
+    try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.database(); return true; }
+    catch (e) { return false; }
+  }
+  function loadVotedFlags() {
+    try { var raw = localStorage.getItem('pollvault_voted'); if (raw !== null) { voted = JSON.parse(raw); } }
+    catch (e) { voted = {}; }
+  }
+  function saveVotedFlags() {
+    try { localStorage.setItem('pollvault_voted', JSON.stringify(voted)); } catch (e) {}
+  }
+  function listen() {
+    db.ref('polls').on('value', function (snap) {
+      var val = snap.val();
+      polls = [];
+      if (val !== null) {
+        Object.keys(val).forEach(function (id) {
+          var p = val[id];
+          p.id = id;
+          if (!Array.isArray(p.tags)) { p.tags = []; }
+          p.questions.forEach(function (q) {
+            q.options.forEach(function (o) { if (typeof o.votes !== 'number') { o.votes = 0; } });
+          });
+          p.totalVotes = pollVotes(p);
+          polls.push(p);
+        });
+      }
+      renderPolls();
+    });
+  }
+  async function savePoll(poll) {
+    try { await db.ref('polls').push().set(poll); return true; }
+    catch (e) { return false; }
+  }
+  async function castVote(pollId, choices) {
+    try {
+      var updates = [];
+      Object.keys(choices).forEach(function (qi) {
+        var ref = db.ref('polls/' + pollId + '/questions/' + qi + '/options/' + choices[qi] + '/votes');
+        updates.push(ref.transaction(function (cur) { return (cur || 0) + 1; }));
+      });
+      await Promise.all(updates);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- helpers ----------
+  function pollVotes(p) {
+    // total ballots = votes on the first question (every ballot answers all questions)
+    var t = 0;
+    var q = p.questions[0];
+    for (var i = 0; i < q.options.length; i++) { t += q.options[i].votes; }
+    return t;
+  }
+  function totalVotes(q) {
+    var t = 0;
+    for (var i = 0; i < q.options.length; i++) { t += q.options[i].votes; }
+    return t;
+  }
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function parseTags(str) {
+    var out = [];
+    str.split(',').forEach(function (t) {
+      var clean = t.trim().toLowerCase().replace(/^#/, '');
+      if (clean !== '' && out.indexOf(clean) === -1 && out.length < MAX_TAGS) { out.push(clean); }
+    });
+    return out;
+  }
+  function matches(p, terms) {
+    if (terms.length === 0) { return true; }
+    var hay = [p.title, p.author].concat(p.tags);
+    p.questions.forEach(function (q) {
+      hay.push(q.text);
+      q.options.forEach(function (o) { hay.push(o.text); });
+    });
+    var text = hay.join(' ').toLowerCase();
+    for (var i = 0; i < terms.length; i++) {
+      if (text.indexOf(terms[i]) === -1) { return false; }
+    }
+    return true;
+  }
+  function visiblePolls() {
+    var terms = query.toLowerCase().split(/\s+/).filter(function (t) { return t !== ''; });
+    var list = polls.filter(function (p) { return matches(p, terms); });
+    list.sort(function (a, b) {
+      if (sortMode === 'newest') { return b.createdAt - a.createdAt; }
+      if (b.totalVotes !== a.totalVotes) { return b.totalVotes - a.totalVotes; }
+      return b.createdAt - a.createdAt;
+    });
+    return list;
+  }
+
+  // ---------- composer ----------
+  function newDraft() { return { questions: [ newQ() ] }; }
+  function newQ() { return { text: '', options: ['', ''] }; }
+
+  function renderComposer() {
+    var qlist = document.getElementById('qlist');
+    qlist.innerHTML = '';
+    draft.questions.forEach(function (q, qi) {
+      var block = document.createElement('div'); block.className = 'qblock';
+      var head = document.createElement('div'); head.className = 'head';
+      var label = document.createElement('strong'); label.textContent = 'Question ' + (qi + 1);
+      head.appendChild(label);
+      if (draft.questions.length > 1) {
+        var rm = document.createElement('button');
+        rm.className = 'link danger'; rm.textContent = 'Remove question';
+        rm.onclick = function () { draft.questions.splice(qi, 1); renderComposer(); };
+        head.appendChild(rm);
+      }
+      block.appendChild(head);
+
+      var qin = document.createElement('input');
+      qin.className = 'qtext'; qin.placeholder = 'Ask something'; qin.maxLength = 140; qin.value = q.text;
+      qin.oninput = function () { q.text = qin.value; };
+      block.appendChild(qin);
+
+      q.options.forEach(function (opt, oi) {
+        var row = document.createElement('div'); row.className = 'optrow';
+        var oin = document.createElement('input');
+        oin.placeholder = 'Option ' + (oi + 1); oin.maxLength = 80; oin.value = opt;
+        oin.oninput = function () { q.options[oi] = oin.value; };
+        row.appendChild(oin);
+        if (q.options.length > MIN_OPT) {
+          var x = document.createElement('button');
+          x.className = 'link danger'; x.textContent = 'Remove';
+          x.onclick = function () { q.options.splice(oi, 1); renderComposer(); };
+          row.appendChild(x);
+        }
+        block.appendChild(row);
+      });
+      if (q.options.length < MAX_OPT) {
+        var addO = document.createElement('button');
+        addO.className = 'link'; addO.textContent = 'Add option';
+        addO.onclick = function () { q.options.push(''); renderComposer(); };
+        block.appendChild(addO);
+      }
+      qlist.appendChild(block);
+    });
+    document.getElementById('addQ').disabled = (draft.questions.length >= MAX_Q);
+  }
+
+  function openComposer() {
+    draft = newDraft();
+    document.getElementById('pollTitle').value = '';
+    document.getElementById('pollAuthor').value = '';
+    document.getElementById('pollTags').value = '';
+    document.getElementById('composerNote').textContent = '';
+    renderComposer();
+    document.getElementById('composer').classList.remove('hidden');
+    document.getElementById('pollTitle').focus();
+  }
+  function closeComposer() {
+    document.getElementById('composer').classList.add('hidden');
+    draft = null;
+  }
+
+  async function publish() {
+    var note = document.getElementById('composerNote');
+    note.className = 'note err';
+    var title = document.getElementById('pollTitle').value.trim();
+    var author = document.getElementById('pollAuthor').value.trim();
+    var tags = parseTags(document.getElementById('pollTags').value);
+    if (title === '') { note.textContent = 'Give the poll a title.'; return; }
+    var questions = [];
+    for (var i = 0; i < draft.questions.length; i++) {
+      var q = draft.questions[i];
+      var qt = q.text.trim();
+      if (qt === '') { note.textContent = 'Question ' + (i + 1) + ' needs some text.'; return; }
+      var opts = [];
+      for (var j = 0; j < q.options.length; j++) {
+        var o = q.options[j].trim();
+        if (o !== '') { opts.push({ text: o, votes: 0 }); }
+      }
+      if (opts.length < MIN_OPT) { note.textContent = 'Question ' + (i + 1) + ' needs at least two options.'; return; }
+      questions.push({ text: qt, options: opts });
+    }
+    var poll = {
+      title: title,
+      author: author === '' ? 'Anonymous' : author,
+      tags: tags,
+      created: new Date().toISOString(),
+      createdAt: Date.now(),
+      questions: questions
+    };
+    note.className = 'note'; note.textContent = 'Publishing…';
+    var ok = await savePoll(poll);
+    if (!ok) { note.className = 'note err'; note.textContent = 'Could not save the poll. Check the Firebase config and database rules.'; return; }
+    closeComposer();
+  }
+
+  // ---------- feed ----------
+  function makeAd(slot, sizeText) {
+    var ad = document.createElement('div');
+    ad.className = 'ad ad-inline';
+    ad.setAttribute('data-slot', slot);
+    var inner = document.createElement('div');
+    inner.textContent = 'Ad space';
+    var s = document.createElement('small'); s.textContent = sizeText;
+    inner.appendChild(s);
+    ad.appendChild(inner);
+    return ad;
+  }
+
+  function renderPolls() {
+    var host = document.getElementById('polls');
+    host.innerHTML = '';
+    var list = visiblePolls();
+    var title = document.getElementById('listTitle');
+    if (query !== '') { title.textContent = list.length + (list.length === 1 ? ' result' : ' results'); }
+    else if (polls.length === 0) { title.textContent = 'No polls yet'; }
+    else { title.textContent = sortMode === 'votes' ? 'Top polls' : 'Newest polls'; }
+
+    if (list.length === 0) {
+      var e = document.createElement('div'); e.className = 'empty';
+      e.textContent = query !== '' ? 'No polls match that search.' : 'Nothing here yet. Post the first poll.';
+      host.appendChild(e);
+      return;
+    }
+    list.forEach(function (poll, i) {
+      host.appendChild(renderPoll(poll));
+      if ((i + 1) % AD_EVERY_N_POLLS === 0 && i < list.length - 1) {
+        host.appendChild(makeAd('feed-inline-' + Math.floor((i + 1) / AD_EVERY_N_POLLS), 'native / 728×90'));
+      }
+    });
+  }
+
+  function renderPoll(poll) {
+    var sheet = document.createElement('section'); sheet.className = 'sheet';
+    var h = document.createElement('h3'); h.textContent = poll.title;
+    var v = document.createElement('span'); v.className = 'votes';
+    v.textContent = poll.totalVotes + (poll.totalVotes === 1 ? ' vote' : ' votes');
+    h.appendChild(v);
+    sheet.appendChild(h);
+    var meta = document.createElement('div'); meta.className = 'meta';
+    meta.textContent = 'Posted by ' + poll.author + ' on ' + fmtDate(poll.created) + ' · ' + poll.questions.length + (poll.questions.length === 1 ? ' question' : ' questions');
+    sheet.appendChild(meta);
+
+    if (poll.tags.length > 0) {
+      var tags = document.createElement('div'); tags.className = 'tags';
+      poll.tags.forEach(function (t) {
+        var b = document.createElement('button'); b.className = 'tag'; b.textContent = t;
+        b.onclick = function () {
+          document.getElementById('search').value = t; query = t; renderPolls();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        tags.appendChild(b);
+      });
+      sheet.appendChild(tags);
+    }
+
+    var showResults = voted[poll.id] === true;
+    var choices = {};
+
+    poll.questions.forEach(function (q, qi) {
+      var qd = document.createElement('div'); qd.className = 'question';
+      var qh = document.createElement('h4'); qh.textContent = q.text; qd.appendChild(qh);
+      if (showResults) {
+        var total = totalVotes(q), max = 0;
+        q.options.forEach(function (o) { if (o.votes > max) { max = o.votes; } });
+        q.options.forEach(function (o) {
+          var r = document.createElement('div');
+          r.className = 'result' + ((o.votes === max && max > 0) ? ' top' : '');
+          var bar = document.createElement('div'); bar.className = 'bar';
+          var pct = total === 0 ? 0 : Math.round(o.votes / total * 100);
+          var span = document.createElement('span');
+          var t = document.createElement('em'); t.style.fontStyle = 'normal'; t.textContent = o.text;
+          var b = document.createElement('b'); b.textContent = pct + '% · ' + o.votes;
+          span.appendChild(t); span.appendChild(b);
+          r.appendChild(bar); r.appendChild(span);
+          qd.appendChild(r);
+          setTimeout(function () { bar.style.width = pct + '%'; }, 30);
+        });
+      } else {
+        q.options.forEach(function (o, oi) {
+          var row = document.createElement('div'); row.className = 'option';
+          var id = 'r_' + poll.id + '_' + qi + '_' + oi;
+          var radio = document.createElement('input');
+          radio.type = 'radio'; radio.name = 'q_' + poll.id + '_' + qi; radio.id = id;
+          radio.onchange = function () { choices[qi] = oi; };
+          var lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = o.text;
+          row.appendChild(radio); row.appendChild(lab);
+          qd.appendChild(row);
+        });
+      }
+      sheet.appendChild(qd);
+    });
+
+    var actions = document.createElement('div'); actions.className = 'actions';
+    var note = document.createElement('span'); note.className = 'note';
+    if (showResults) {
+      note.className = 'note ok'; note.textContent = 'You voted on this poll. Results update live.';
+    } else {
+      var voteBtn = document.createElement('button');
+      voteBtn.className = 'btn small'; voteBtn.textContent = 'Cast vote';
+      voteBtn.onclick = async function () {
+        for (var qi = 0; qi < poll.questions.length; qi++) {
+          if (typeof choices[qi] === 'undefined') {
+            note.className = 'note err'; note.textContent = 'Pick an answer for every question first.'; return;
+          }
+        }
+        voteBtn.disabled = true; note.className = 'note'; note.textContent = 'Sending…';
+        var ok = await castVote(poll.id, choices);
+        if (!ok) { voteBtn.disabled = false; note.className = 'note err'; note.textContent = 'Vote did not save. Try again.'; return; }
+        voted[poll.id] = true;
+        saveVotedFlags();
+        renderPolls();
+      };
+      actions.appendChild(voteBtn);
+    }
+    actions.appendChild(note);
+    sheet.appendChild(actions);
+    return sheet;
+  }
+
+  // ---------- wire up ----------
+  document.getElementById('newBtn').onclick = openComposer;
+  document.getElementById('cancelBtn').onclick = closeComposer;
+  document.getElementById('publishBtn').onclick = publish;
+  document.getElementById('addQ').onclick = function () {
+    if (draft.questions.length < MAX_Q) { draft.questions.push(newQ()); renderComposer(); }
+  };
+  document.getElementById('search').oninput = function (e) { query = e.target.value.trim(); renderPolls(); };
+  document.getElementById('sort').onchange = function (e) { sortMode = e.target.value; renderPolls(); };
+
+  (function init() {
+    loadVotedFlags();
+    document.getElementById('listTitle').textContent = 'Loading polls…';
+    if (!connect()) {
+      document.getElementById('listTitle').textContent = 'Not connected';
+      var warn = document.createElement('div'); warn.className = 'empty';
+      warn.textContent = 'Paste your Firebase config into the FIREBASE_CONFIG block near the bottom of the file, then reload.';
+      document.getElementById('polls').appendChild(warn);
+      document.getElementById('newBtn').disabled = true;
+      return;
+    }
+    listen();
+  })();
+})();
+</script>
+</body>
+</html>
