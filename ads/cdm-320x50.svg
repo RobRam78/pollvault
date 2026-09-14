@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="50" viewBox="0 0 320 50" role="img" aria-label="C64 Dev Machine - visual node IDE for the Commodore 64. Get it on itch.io">
+  <rect width="320" height="50" fill="#7C71DA"/>
+  <rect x="5" y="5" width="310" height="40" fill="#40318D"/>
+  <g font-family="Consolas, 'Courier New', monospace" font-size="6" font-weight="700">
+    <rect x="14" y="10" width="34" height="12" rx="1.5" fill="#5CAB5E"/>
+    <text x="31" y="18.5" fill="#0B2A0C" text-anchor="middle">SPRITE</text>
+    <rect x="14" y="28" width="34" height="12" rx="1.5" fill="#D7B95C"/>
+    <text x="31" y="36.5" fill="#3A2C00" text-anchor="middle">JOY</text>
+    <rect x="66" y="19" width="34" height="12" rx="1.5" fill="#B86962"/>
+    <text x="83" y="27.5" fill="#2A0704" text-anchor="middle">6502</text>
+    <path d="M48 16 C58 16 58 25 66 25 M48 34 C58 34 58 25 66 25" fill="none" stroke="#C9BFFF" stroke-width="1.5"/>
+  </g>
+  <g font-family="Consolas, 'Courier New', monospace">
+    <text x="112" y="23" fill="#FFFFFF" font-size="13" font-weight="700">C64 DEV MACHINE</text>
+    <text x="112" y="36" fill="#B8B0F0" font-size="8">Wire nodes. Build C64 games.</text>
+  </g>
+  <rect x="252" y="14" width="56" height="22" rx="2" fill="#FA5C5C"/>
+  <text x="280" y="28.5" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" text-anchor="middle">itch.io &#8250;</text>
+</svg>
