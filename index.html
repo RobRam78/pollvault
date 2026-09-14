@@ -73,6 +73,12 @@
 
   .focus { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #FFF6D6; border: 1px solid #F0D98A; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 
+  .stats { display: flex; gap: 0; margin-bottom: 20px; background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .stats div { flex: 1; padding: 12px 14px; text-align: center; border-left: 1px solid var(--line); }
+  .stats div:first-child { border-left: 0; }
+  .stats b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  .stats span { font-size: 13px; color: var(--ink-soft); }
+
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
   .toolbar h2 { margin: 0; font-size: 20px; font-weight: 500; }
 
@@ -156,6 +162,12 @@
           <img src="ads/cdm-728x90.svg" alt="C64 Dev Machine – build Commodore 64 games by wiring nodes. Get it on itch.io" width="728" height="90">
         </picture>
       </a>
+
+      <div class="stats">
+        <div><b id="statVisits">–</b><span>site visits</span></div>
+        <div><b id="statVotes">–</b><span>votes cast</span></div>
+        <div><b id="statPolls">–</b><span>polls made</span></div>
+      </div>
 
       <div class="focus hidden" id="focusBar"><span>Viewing one shared poll.</span><button class="btn ghost small" id="showAll">Show all polls</button></div>
 
@@ -249,7 +261,29 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
   function saveVotedFlags() {
     try { localStorage.setItem('pollvault_voted', JSON.stringify(voted)); } catch (e) {}
   }
+  function fmtNum(n) {
+    return n.toLocaleString();
+  }
+  function countVisit() {
+    // one visit per browser session
+    var seen = false;
+    try { seen = sessionStorage.getItem('pollvault_visited') === '1'; } catch (e) {}
+    if (!seen) {
+      db.ref('stats/visits').transaction(function (cur) { return (cur || 0) + 1; });
+      try { sessionStorage.setItem('pollvault_visited', '1'); } catch (e) {}
+    }
+    db.ref('stats/visits').on('value', function (snap) {
+      document.getElementById('statVisits').textContent = fmtNum(snap.val() || 0);
+    });
+  }
+  function updateStats() {
+    var votes = 0;
+    polls.forEach(function (p) { votes += p.totalVotes; });
+    document.getElementById('statPolls').textContent = fmtNum(polls.length);
+    document.getElementById('statVotes').textContent = fmtNum(votes);
+  }
   function listen() {
+    countVisit();
     db.ref('polls').on('value', function (snap) {
       var val = snap.val();
       polls = [];
@@ -265,6 +299,7 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
           polls.push(p);
         });
       }
+      updateStats();
       renderPolls();
     });
   }
