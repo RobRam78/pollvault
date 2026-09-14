@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="728" height="90" viewBox="0 0 728 90" role="img" aria-label="C64 Dev Machine - visual node IDE for the Commodore 64. Get it on itch.io">
+  <defs>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="#000" opacity=".12"/>
+    </pattern>
+  </defs>
+  <!-- C64 light-blue border + dark-blue screen -->
+  <rect width="728" height="90" fill="#7C71DA"/>
+  <rect x="8" y="8" width="712" height="74" fill="#40318D"/>
+  <rect x="8" y="8" width="712" height="74" fill="url(#scan)"/>
+
+  <!-- node graph motif -->
+  <g font-family="Consolas, 'Courier New', monospace" font-size="9" font-weight="700">
+    <rect x="24" y="18" width="62" height="22" rx="2" fill="#5CAB5E" stroke="#B8F0BC" stroke-width="1.5"/>
+    <text x="55" y="33" fill="#0B2A0C" text-anchor="middle">SPRITE</text>
+    <rect x="24" y="50" width="62" height="22" rx="2" fill="#D7B95C" stroke="#FFF1B0" stroke-width="1.5"/>
+    <text x="55" y="65" fill="#3A2C00" text-anchor="middle">JOYSTICK</text>
+    <rect x="120" y="34" width="62" height="22" rx="2" fill="#B86962" stroke="#FFC4BE" stroke-width="1.5"/>
+    <text x="151" y="49" fill="#2A0704" text-anchor="middle">MOVE</text>
+    <rect x="216" y="34" width="62" height="22" rx="2" fill="#7C71DA" stroke="#D8D2FF" stroke-width="1.5"/>
+    <text x="247" y="49" fill="#0F0838" text-anchor="middle">6502 ASM</text>
+    <path d="M86 29 C104 29 104 45 120 45 M86 61 C104 61 104 45 120 45 M182 45 H216" fill="none" stroke="#C9BFFF" stroke-width="2"/>
+    <circle cx="86" cy="29" r="2.5" fill="#FFF"/><circle cx="86" cy="61" r="2.5" fill="#FFF"/>
+    <circle cx="120" cy="45" r="2.5" fill="#FFF"/><circle cx="182" cy="45" r="2.5" fill="#FFF"/><circle cx="216" cy="45" r="2.5" fill="#FFF"/>
+  </g>
+
+  <!-- copy -->
+  <g font-family="Consolas, 'Courier New', monospace">
+    <text x="304" y="40" fill="#FFFFFF" font-size="21" font-weight="700" letter-spacing="1">C64 DEV MACHINE</text>
+    <text x="304" y="60" fill="#B8B0F0" font-size="12">Wire nodes. Compile 6502. Ship games.</text>
+    <text x="304" y="74" fill="#7C71DA" font-size="11">READY.<tspan fill="#FFFFFF">&#9608;</tspan></text>
+  </g>
+
+  <!-- CTA -->
+  <rect x="592" y="27" width="112" height="36" rx="3" fill="#FA5C5C"/>
+  <text x="648" y="45" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Get it on</text>
+  <text x="648" y="57" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" text-anchor="middle">itch.io &#8250;</text>
+</svg>
