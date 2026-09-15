@@ -10,13 +10,13 @@
 <meta property="og:description" content="Post a poll, let the crowd decide. The most-voted polls rise to the top.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://robram78.github.io/pollvault/">
-<meta property="og:image" content="https://robram78.github.io/pollvault/og.png">
+<meta property="og:image" content="https://robram78.github.io/pollvault/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pollvault">
 <meta name="twitter:description" content="Post a poll, let the crowd decide. The most-voted polls rise to the top.">
-<meta name="twitter:image" content="https://robram78.github.io/pollvault/og.png">
+<meta name="twitter:image" content="https://robram78.github.io/pollvault/og.png?v=2">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -428,7 +428,7 @@ var AD_EVERY_N_POLLS = 3;   // inline ad after every N polls in the feed
     list.sort(function (a, b) {
       if (sortMode === 'newest') { return b.createdAt - a.createdAt; }
       if (b.totalVotes !== a.totalVotes) { return b.totalVotes - a.totalVotes; }
-      return b.createdAt - a.createdAt;
+      return a.createdAt - b.createdAt;
     });
     return list;
   }
